@@ -1,5 +1,5 @@
-#ifndef TPC_HANDLE
-#define TPC_HANDLE
+#ifndef BYTE_PROCESS
+#define BYTE_PROCESS
 typedef unsigned char byte;
 typedef struct bytes
 {
