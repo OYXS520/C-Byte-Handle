@@ -45,9 +45,8 @@ int main(){
         printf("拼接后的结果：--->");
         print_bytes(result[i]);
     }
-     
-    // bytes *res = bytes_intercept(package,12,14);
-    // print_bytes(res);    
+    
+
     
     
     return 0;

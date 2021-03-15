@@ -22,7 +22,7 @@ extern bytes *init_bytes();
 extern bytes *create_bytes(byte *data,int len);
 extern void print_bytes(bytes *src);
 extern void free_bytes(bytes *src);
-extern void free_bytes_array(bytes **src,int len)
+extern void free_bytes_array(bytes **src,int len);
 extern void free_tcp_package_info(tcp_package_info *info);
 extern void realloc_security(byte **src,int new_size);
 extern void bytes_splicing(bytes *src,bytes *tail,int len);
