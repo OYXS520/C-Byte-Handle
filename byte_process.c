@@ -87,6 +87,19 @@ void free_bytes(bytes *src){
     src = NULL;
 }
 /**
+ * @brief  释放字节数组的数组
+ * @note   
+ * @param  **src: 
+ * @retval None
+ */
+void free_bytes_array(bytes **src,int len){
+    for (size_t i = 0; i < len; i++)
+    {
+        free_bytes(src[i]);
+    }
+    free(src);
+}
+/**
  * @brief  释放包信息结构体
  * @note   
  * @param  *info: 
