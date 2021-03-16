@@ -470,9 +470,9 @@ jomp:
         if (bytes_n_compares(buffer_link, pack_info->pag_head, pack_info->pag_head->len) == 0) //发现包头
         {
             bytes *data_bit = bytes_intercept(buffer_link, pack_info->pag_head->len, base_len); //截取数据位
-            current_data_len = parse_data_bit(data_bit);
+            current_data_len = bytes_to_int(data_bit);
             free_bytes(data_bit);
-            // printf("当前处理的数据长度为%d\n",current_data_len);
+            printf("当前处理的数据长度为%d\n",current_data_len);
             int complete_package_len = current_data_len + base_len + pack_info->pag_tail->len;
             // printf("当前包的应该的完整长度%d\n",complete_package_len);
             if (buffer_link->len >= complete_package_len) //如果长度够了一个完整的包
