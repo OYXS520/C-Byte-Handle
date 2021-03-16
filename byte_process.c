@@ -290,6 +290,42 @@ int current_data_len; //当前检查的数据的长度
 int base_len = 0; //底线长度 包头字节长度+数据位长度
 
 /**
+ * @brief  int转字节数组
+ * @note   只限整型
+ * @param  num: 
+ * @retval 
+ */
+bytes *int_to_bytes(int num)
+{
+    bytes *ret = init_bytes();
+    ret->data = malloc(4);
+    ret->data[0] = (byte)((num >> 24) & 0xFF);
+    ret->data[1] = (byte)((num >> 16) & 0xFF);
+    ret->data[2] = (byte)((num >> 8) & 0xFF);
+    ret->data[3] = (byte)(num & 0xFF);
+    ret->len = 4;
+    return ret;
+}
+/**
+ * @brief  字节数组转int
+ * @note   只限四位字节
+ * @param  *data: 
+ * @retval 
+ */
+int bytes_to_int(bytes *data)
+{
+    int mask = 0xFF;
+    int temp = 0;
+    int res = 0;
+    for (size_t i = 0; i < 4; i++)
+    {
+        res <<= 8;
+        temp = (data->data[i]) & mask;
+        res |= temp;
+    }
+    return res;
+}
+/**
  *! @brief  将数据位的长度转换为进制整数
  * @note   
  * @param  *data_bit: 

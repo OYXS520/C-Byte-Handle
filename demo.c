@@ -50,9 +50,9 @@
 int main(int argc, char const *argv[])
 {
     int len = get_file_size("/Users/shu/Desktop/image_test/图片数据.jpg");
-    bytes *data_bit = parse_int_to_bytes(len,10);
-    int a  = parse_data_bit(data_bit);
+    bytes *data_bit = int_to_bytes(len);
     print_bytes(data_bit);
+    int a = bytes_to_int(data_bit);
     printf("%d\n",a);
     return 0;
 }
