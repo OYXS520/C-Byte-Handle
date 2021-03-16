@@ -305,6 +305,27 @@ int parse_data_bit(bytes *data_bit)
     }
     return ret;
 }
+
+/**
+ * @brief  解析整型到字节数组
+ * @note   
+ * @param  num: 数
+ * @param  len: 转为字节数组的长度
+ * @retval 
+ */
+bytes *parse_int_to_bytes(int num, int len)
+{
+    bytes *res = init_bytes();
+    res->data = (byte *)malloc(len);
+    res->len = len;
+    int yu = num;
+    for (int i = len - 1; i >= 0; i--)
+    {
+        res->data[len - 1 - i] = (byte)(yu / ((int)pow(10, i)));
+        yu = yu % ((int)pow(10, i));
+    }
+    return res;
+}
 /**
  *! @brief  设置包头包尾信息
  * @note   
