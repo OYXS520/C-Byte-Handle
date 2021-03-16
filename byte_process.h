@@ -18,6 +18,7 @@ extern tcp_package_info *pack_info;//全局包头包尾信息
 extern bytes *buffer_link; //全局buffer链
 extern int current_data_len;//当前定位的数据的长度
 
+extern size_t get_file_size(const char *filepath);
 extern bytes *init_bytes();
 extern bytes *create_bytes(byte *data,int len);
 extern void print_bytes(bytes *src);
