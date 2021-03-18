@@ -57,7 +57,6 @@ bytes *create_bytes(byte *data, int len)
 {
     bytes *res = init_bytes();
     res->data = (byte *)malloc(len);
-    memset(res->data, 0, len);
     memcpy(res->data, data, len);
     res->len = len;
     return res;
@@ -258,7 +257,7 @@ int bytes_compares(bytes *src, bytes *tar)
  * @param  *tar: 
  * @retval 
  */
-int bytes_n_compares(bytes *src, bytes *tar, int len)
+int bytes_n_compares(bytes *src,int start_1, bytes *tar,int start_2, int len)
 {
     if (src == NULL || tar == NULL)
     {
@@ -267,16 +266,53 @@ int bytes_n_compares(bytes *src, bytes *tar, int len)
     }
     for (size_t i = 0; i < len; i++)
     {
-        if (src->data[i] > tar->data[i])
+        if (src->data[start_1+i] > tar->data[start_2+i])
         {
             return 1;
         }
-        else if (src->data[i] < tar->data[i])
+        else if (src->data[start_1+i] < tar->data[start_2+i])
         {
             return -1;
         }
     }
     return 0;
+}
+int bytes_search(bytes *src,bytes *tar){
+    if (src == NULL || tar == NULL)
+    {
+        perror("bytes_search bytes is NULL");
+    }
+    if (src->data == NULL || tar->data == NULL)
+    {
+        printf("bytes_search bytes->data is NULL\n");
+        return -1;
+    }
+    
+    if (tar->len ==0)
+    {
+        return 0;
+    }
+    const byte *s1 = src->data;
+	const byte *s2 = tar->data;
+	const byte *cp = src->data;
+    int res = 0;
+    while (*cp)
+    {
+        s1 = cp;
+        s2 = tar->data;
+        while (*s1 && *s2 && *s1== *s2)
+        {
+           s1 ++;
+           s2 ++;
+        }
+        if (!*s2)
+        {
+             return res;   
+        }
+        cp ++;
+        res ++;
+    }
+    return -1;  
 }
 /**
  *! @brief  重要的全局配置信息
@@ -284,6 +320,7 @@ int bytes_n_compares(bytes *src, bytes *tar, int len)
  * @retval None
  */
 bytes *buffer_link = NULL;
+bytes_queue *package_queue = NULL;
 tcp_package_info *pack_info = NULL;
 int current_data_len; //当前检查的数据的长度
 
@@ -426,62 +463,58 @@ void add_bytes_to_bytess(bytes ***array, bytes *tail, int array_len)
     void *check = &((*array)[array_len]);
 }
 
-// /**
-//  *! @brief 从完整包中获取数据
-//  * @note
-//  * @retval
-//  */
-// bytes *get_data_from_package(bytes *src){
-//     bytes *ret = NULL;
-//     // bytes_splicing(ret,&(src->data[pack_info->pag_head->len + pack_info->data_bits]),current_data_len);
-//     // ret->data = (byte *)malloc(current_data_len);
-//     // memcpy(ret->data,&(src->data[pack_info->pag_head->len + pack_info->data_bits]),current_data_len);
-//     // ret->len = current_data_len;
-//     ret = bytes_intercept(src,pack_info->pag_head->len + pack_info->data_bits,pack_info->pag_head->len + pack_info->data_bits + current_data_len);
-//     return ret;
-// }
-
 /**
  * @brief  将读取到的buffer拼接成链式，然后从中查找已经完整的包
  * @note   
  * @param  *buffer: 
  * @param  **results: 
- * @retval 
+ * @retval 返回添加buffer后队列中新增加的完整包的数量
  */
-int check_package_from_buffer_link(bytes *buffer, bytes ***results, int results_len)
+int check_package_from_buffer_link(bytes *buffer)
 {
     //TODO:主要逻辑
     // bytes *buffer_link = NULL;
     // tcp_package_info *pack_info = NULL;
     // int current_data_len; //当前检查的数据的长度
-    int res = results_len;   //查找到的完整包的个数
+    int res = 0;   //查找到的完整包的个数
     if (buffer_link == NULL) //如果buffer_link没有初始化,先初始化
     {
         buffer_link = init_bytes();
-    }
+        int index = bytes_search(buffer,pack_info->pag_head);//查找包头
+        if (index < 0 )
+        {
+            printf("第一个包中没有包头\n");
+            return res;
+        }else if ( index  > 0)
+        {
+            bytes * temp = init_bytes();
+            temp = bytes_intercept(buffer,index,buffer->len);
+            free_bytes(buffer);
+            buffer = temp;
+        }
+        
+    }  
     bytes_splicing(buffer_link, buffer, buffer->len); //将新的字节数组拼接到老的后面
 jomp:
+
     if (buffer_link->len < base_len) //如果初始数据连包头和数据位的长度都没有就等下一次数据继续拼接
     {
         return res;
     }
     else
     {                                                                                          //肯定有完整的包头和长度位
-        if (bytes_n_compares(buffer_link, pack_info->pag_head, pack_info->pag_head->len) == 0) //发现包头
+        if (bytes_n_compares(buffer_link,0, pack_info->pag_head,0, pack_info->pag_head->len) == 0) //发现包头
         {
             bytes *data_bit = bytes_intercept(buffer_link, pack_info->pag_head->len, base_len); //截取数据位
             current_data_len = bytes_to_int(data_bit);
             free_bytes(data_bit);
-            printf("当前处理的数据长度为%d\n",current_data_len);
+            // printf("当前处理的数据长度为%d\n", current_data_len);
             int complete_package_len = current_data_len + base_len + pack_info->pag_tail->len;
             // printf("当前包的应该的完整长度%d\n",complete_package_len);
             if (buffer_link->len >= complete_package_len) //如果长度够了一个完整的包
             {
-                bytes *tail = bytes_intercept(buffer_link, complete_package_len - pack_info->pag_tail->len, complete_package_len);
-                // printf("打印包尾");
-                // print_bytes(tail);
-                // print_bytes(pack_info->pag_tail);
-                if (bytes_n_compares(tail, pack_info->pag_tail, pack_info->pag_tail->len) == 0)
+
+                if (bytes_n_compares(buffer_link,complete_package_len - pack_info->pag_tail->len ,pack_info->pag_tail, 0,pack_info->pag_tail->len) == 0)
                 {
                     //1 复制出完整的包，
                     //2 将剩余的数据复制到新的buffer链中
@@ -489,9 +522,9 @@ jomp:
                     //4 重新定位buffer链
                     //获取数据    （复制）                                                  //包头长度加数据位长度                                      // 包头长度加数据位长度加数据长度
                     bytes *package = bytes_intercept(buffer_link, pack_info->pag_head->len + pack_info->data_bits, pack_info->pag_head->len + pack_info->data_bits + current_data_len);
-                    add_bytes_to_bytess(results, package, res);
+                    add_bytes_to_queue(&package_queue,package);
                     res++;
-                    printf("获取到一个包,当前是第%d\n个包", res);
+                    printf("获取到一个包,当前是第%d个包\n", res);
                     //复制数据链中剩余的信息
                     bytes *tem = bytes_intercept(buffer_link, complete_package_len, buffer_link->len);
                     free_bytes(buffer_link);
@@ -500,7 +533,6 @@ jomp:
                     // print_bytes(buffer_link);
                     goto jomp; //再次检查数据链
                 }
-                free_bytes(tail);
             }
             else
             { //长度不够一个完整的包
@@ -519,4 +551,104 @@ jomp:
 void print_buffer_link()
 {
     print_bytes(buffer_link);
+}
+/**
+ * @brief  初始化队列接节点
+ * @note   
+ * @retval 
+ */
+bytes_queue *init_bytes_queue(){
+    bytes_queue *res = (bytes_queue *)malloc(sizeof(bytes_queue));
+    res->next = NULL;
+    return res;
+}
+/**
+ * @brief  释放单个节点的内存
+ * @note   
+ * @param  *note: 
+ * @retval None
+ */
+void free_bytes_queue(bytes_queue *note){
+    free_bytes(note->data);
+    free(note);
+}
+/**
+ * @brief  获取队列的大小
+ * @note   
+ * @param  *head: 
+ * @retval 
+ */
+int bytes_queue_size(bytes_queue *head){
+    bytes_queue *p = head;
+    size_t i = 0;
+    while (p->next !=NULL) //找打尾节点
+    {
+        p = p->next;
+        i ++ ;
+    }
+    return i;
+}
+/**
+ * @brief  打印队列
+ * @note   
+ * @param  *head: 
+ * @retval None
+ */
+void print_bytes_queue(bytes_queue *head){
+    bytes_queue *p = head;
+    if (p == NULL)
+    {
+        printf("队列为空\n");
+        return;
+    }
+    
+    for (size_t i = 0; p != NULL; i++)
+    {
+        printf("%d ",i);
+        print_bytes(p->data);
+        p = p->next;
+    }
+}
+/**
+ * @brief  入队(尾插)
+ * @note   
+ * @param  *head: 
+ * @param  *tail: 
+ * @retval 
+ */
+int add_bytes_to_queue(bytes_queue **head,bytes *data){
+    
+    bytes_queue *p  = *head;
+    bytes_queue * tail= init_bytes_queue();
+    tail->data = data;
+    size_t i = 0;
+    if (*head == NULL)
+    {
+        *head = tail;
+    }else{
+        
+        while (p->next != NULL) //找打尾节点
+        {
+            p = p->next;
+            i ++ ;
+        }
+        p->next = tail;
+        
+    }
+    return i + 1;
+    
+}
+/**
+ * @brief  从队列中出队
+ * @note   
+ * @param  *head: 
+ * @retval 
+ */
+bytes *get_bytes_to_queue(bytes_queue **head){
+    bytes_queue *p =*head;
+    bytes *res = create_bytes(p->data->data,p->data->len);
+    *head = p->next;
+    p->next = NULL;
+    free_bytes_queue(p);
+    return res;
 }
