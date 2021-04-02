@@ -186,6 +186,7 @@ void bytes_splicing(bytes *src, bytes *tail, int len)
     src->len = src->len + len;
     memcpy(&(src->data[origin_len]), tail->data, len);
 }
+
 /**
  *! @brief  截取src字节数组，从start开始到end结束，包含start ，不包含end
  * @note   返回的bytes * 为复制内存生成，需自行释放内存
@@ -320,7 +321,8 @@ int bytes_search(bytes *src,bytes *tar){
  * @retval None
  */
 bytes *buffer_link = NULL;
-bytes_queue *package_queue = NULL;
+volatile bytes_queue *package_queue = NULL;
+volatile int package_queue_size = 0;
 tcp_package_info *pack_info = NULL;
 int current_data_len; //当前检查的数据的长度
 
@@ -459,7 +461,7 @@ void add_bytes_to_bytess(bytes ***array, bytes *tail, int array_len)
         }
         *array = tem;
     }
-    (*array)[array_len] = tail; //!运算符优先级，大坑啊！！！
+    (*array)[array_len] = tail; //!运算符优先级
     void *check = &((*array)[array_len]);
 }
 
@@ -486,7 +488,7 @@ int check_package_from_buffer_link(bytes *buffer)
             printf("第一个包中没有包头\n");
             return res;
         }else if ( index  > 0)
-        {
+        {   //如果第一个包中有包头，但是包头不在第一个，就丢弃包头之前的数据，拿取包头和包头之后的数据
             bytes * temp = init_bytes();
             temp = bytes_intercept(buffer,index,buffer->len);
             free_bytes(buffer);
@@ -495,6 +497,7 @@ int check_package_from_buffer_link(bytes *buffer)
         
     }  
     bytes_splicing(buffer_link, buffer, buffer->len); //将新的字节数组拼接到老的后面
+    free_bytes(buffer);
 jomp:
 
     if (buffer_link->len < base_len) //如果初始数据连包头和数据位的长度都没有就等下一次数据继续拼接
@@ -571,6 +574,7 @@ bytes_queue *init_bytes_queue(){
 void free_bytes_queue(bytes_queue *note){
     free_bytes(note->data);
     free(note);
+    note = NULL;
 }
 /**
  * @brief  获取队列的大小
@@ -578,15 +582,8 @@ void free_bytes_queue(bytes_queue *note){
  * @param  *head: 
  * @retval 
  */
-int bytes_queue_size(bytes_queue *head){
-    bytes_queue *p = head;
-    size_t i = 0;
-    while (p->next !=NULL) //找打尾节点
-    {
-        p = p->next;
-        i ++ ;
-    }
-    return i;
+int bytes_queue_size(){
+    return package_queue_size;
 }
 /**
  * @brief  打印队列
@@ -594,8 +591,8 @@ int bytes_queue_size(bytes_queue *head){
  * @param  *head: 
  * @retval None
  */
-void print_bytes_queue(bytes_queue *head){
-    bytes_queue *p = head;
+void print_bytes_queue(){
+    bytes_queue *p = package_queue;
     if (p == NULL)
     {
         printf("队列为空\n");
@@ -635,6 +632,7 @@ int add_bytes_to_queue(bytes_queue **head,bytes *data){
         p->next = tail;
         
     }
+    package_queue_size ++;
     return i + 1;
     
 }
@@ -644,11 +642,31 @@ int add_bytes_to_queue(bytes_queue **head,bytes *data){
  * @param  *head: 
  * @retval 
  */
-bytes *get_bytes_to_queue(bytes_queue **head){
-    bytes_queue *p =*head;
+bytes *get_bytes_to_queue(){
+    bytes_queue *p =package_queue;
     bytes *res = create_bytes(p->data->data,p->data->len);
-    *head = p->next;
+    package_queue = p->next;
     p->next = NULL;
     free_bytes_queue(p);
+    package_queue_size --;
     return res;
 }
+
+/**
+ * @brief  释放使用的资源
+ * @note   
+ * @retval None
+ */
+void resource_release(){
+
+    // bytes *buffer_link = NULL;
+    // volatile bytes_queue *package_queue = NULL;
+    // volatile int package_queue_size = 0;
+    // tcp_package_info *pack_info = NULL;
+    // int current_data_len; //当前检查的数据的长度
+    // int base_len = 0; //底线长度 包头字节长度+数据位长度
+    free_bytes(buffer_link);
+    free_bytes_queue(package_queue);
+    free_tcp_package_info(pack_info);
+}
+

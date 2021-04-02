@@ -14,10 +14,10 @@ typedef struct bytes_queue
 }bytes_queue;
 extern bytes_queue *init_bytes_queue();
 extern void free_bytes_queue(bytes_queue *note);
-extern void print_bytes_queue(bytes_queue *head);
-extern int bytes_queue_size(bytes_queue *head);
+extern void print_bytes_queue();
+extern int bytes_queue_size();
 extern int add_bytes_to_queue(bytes_queue **head,bytes *tail);
-extern bytes *get_bytes_to_queue(bytes_queue **head);
+extern bytes *get_bytes_to_queue();
 
 typedef struct tcp_package_info
 {
@@ -27,7 +27,8 @@ typedef struct tcp_package_info
 } tcp_package_info;
 
 extern tcp_package_info *pack_info; //全局包头包尾信息
-extern bytes_queue *package_queue;
+extern volatile bytes_queue *package_queue;
+extern volatile int package_queue_size;
 extern bytes *buffer_link;          //全局buffer链
 extern int current_data_len;        //当前定位的数据的长度
 
@@ -54,5 +55,6 @@ extern void add_bytes_to_bytess(bytes ***bytess, bytes *tail, int bytess_len);
 // bytes *get_data_from_package(bytes *src);
 extern int check_package_from_buffer_link(bytes *buffer);
 extern void print_buffer_link();
+extern void resource_release();
 
 #endif
